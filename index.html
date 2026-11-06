@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Icebreaker & Team-Building Generator</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f8; color: #222; }
+  header { background: #4f46e5; color: #fff; padding: 18px; text-align: center; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; font-size: 14px; opacity: .9; }
+  nav { display: flex; justify-content: center; gap: 8px; margin: 14px 0; }
+  nav button { background: #e0e7ff; color: #3730a3; border: none; padding: 9px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+  nav button.active { background: #4f46e5; color: #fff; }
+  .page { max-width: 960px; margin: 0 auto; padding: 0 14px 30px; }
+  .hidden { display: none; }
+  .panel { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.08); margin-bottom: 16px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  label { font-weight: bold; font-size: 13px; display: block; margin-bottom: 4px; }
+  select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  .btn-row { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+  button.btn { background: #4f46e5; color: #fff; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  button.btn:hover { background: #4338ca; }
+  button.btn.alt { background: #fff; color: #4f46e5; border: 1px solid #4f46e5; }
+  .error { color: #b91c1c; font-size: 13px; margin-top: 8px; min-height: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
+  .card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.08); border-top: 4px solid #4f46e5; display: flex; flex-direction: column; }
+  .card h3 { margin: 6px 0; font-size: 17px; }
+  .card p { margin: 0 0 10px; font-size: 14px; line-height: 1.4; flex: 1; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #e0e7ff; color: #3730a3; margin-right: 4px; }
+  .time { background: #dcfce7; color: #166534; font-weight: bold; }
+  .answer { background: #fef9c3; padding: 6px 8px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; }
+  .card-actions button { border: 1px solid #ccc; background: #fff; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px; margin-right: 6px; }
+  .card-actions button.saved { background: #fde68a; border-color: #f59e0b; }
+  .empty { color: #666; text-align: center; padding: 30px 10px; }
+  .skeleton { height: 150px; border-radius: 10px; background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px; display: none; }
+  h2 { font-size: 18px; margin: 4px 0 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Icebreaker & Team-Building Generator</h1>
+  <p>Quick, personalised activities for your team</p>
+</header>
+
+<nav>
+  <button id="tabGenerate" class="active">Generate</button>
+  <button id="tabSaved">Saved (<span id="savedCount">0</span>)</button>
+</nav>
+
+<div class="page">
+
+  <!-- GENERATE PAGE -->
+  <div id="pageGenerate">
+    <div class="panel">
+      <div class="form-grid">
+        <div>
+          <label for="teamSize">Team size</label>
+          <input id="teamSize" type="number" min="2" max="200" value="6">
+        </div>
+        <div>
+          <label for="setting">Setting</label>
+          <select id="setting">
+            <option value="remote">Remote</option>
+            <option value="person">In-person</option>
+          </select>
+        </div>
+        <div>
+          <label for="vibe">Vibe</label>
+          <select id="vibe">
+            <option value="casual">Casual</option>
+            <option value="pro">Professional</option>
+          </select>
+        </div>
+        <div>
+          <label for="type">Activity type</label>
+          <select id="type">
+            <option value="icebreaker">Icebreaker</option>
+            <option value="teambuilding">Team-building</option>
+            <option value="trivia">Trivia</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="generateBtn">Generate</button>
+        <button class="btn alt" id="regenBtn">Regenerate</button>
+        <button class="btn alt" id="surpriseBtn">Surprise Me</button>
+        <button class="btn alt" id="quizBtn">Not sure of the vibe? Take the quiz</button>
+      </div>
+      <div id="error" class="error"></div>
+    </div>
+
+    <!-- Team vibe quiz (stretch feature) -->
+    <div id="quizBox" class="panel hidden">
+      <h2>Team vibe quiz</h2>
+      <div class="form-grid">
+        <div>
+          <label for="q1">1. How does your team usually talk?</label>
+          <select id="q1"><option value="0">Jokes and memes</option><option value="1">Mostly work topics</option></select>
+        </div>
+        <div>
+          <label for="q2">2. Your last team meeting felt...</label>
+          <select id="q2"><option value="0">Relaxed</option><option value="1">Formal</option></select>
+        </div>
+        <div>
+          <label for="q3">3. Who will join the session?</label>
+          <select id="q3"><option value="0">Close teammates</option><option value="1">Managers or new hires</option></select>
+        </div>
+      </div>
+      <div class="btn-row"><button class="btn" id="quizDone">Recommend a vibe</button></div>
+    </div>
+
+    <div id="resultsHeader" class="btn-row hidden" style="justify-content: space-between; align-items:center; margin-bottom:10px;">
+      <h2 id="resultsTitle" style="margin:0"></h2>
+      <button class="btn alt" id="copyBtn">Copy summary</button>
+    </div>
+    <div id="results" class="cards"></div>
+    <div id="intro" class="empty">Choose your options and click Generate, or try Surprise Me.</div>
+  </div>
+
+  <!-- SAVED PAGE -->
+  <div id="pageSaved" class="hidden">
+    <h2>Your saved activities</h2>
+    <div id="savedList" class="cards"></div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ---------- SEED DATA ----------
+// Format: [type, setting, vibe, title, description, time, answer]
+// setting: "remote", "person" or "both"   vibe: "casual" or "pro"
+var rawData = [
+  // ICEBREAKERS
+  ["icebreaker","both","casual","Superpower for a Day","Everyone shares which superpower they would pick for one workday, and how they would use it.","5 min"],
+  ["icebreaker","both","casual","Emoji Week","Describe your week so far using only three emojis. The team guesses the story.","5-10 min"],
+  ["icebreaker","both","casual","Desert Island Three","Each person names the three items they would take to a desert island and why.","10 min"],
+  ["icebreaker","both","casual","Dream Meal","Share the one meal you could eat every day for a month without getting bored.","5 min"],
+  ["icebreaker","both","pro","First Job","Share your very first job and one lesson it taught you that you still use.","10 min"],
+  ["icebreaker","both","pro","Hidden Skill","Tell the team one skill you are proud of that most people here do not know about.","10 min"],
+  ["icebreaker","both","pro","Best Advice","What is the best work advice you ever received, and who gave it?","5-10 min"],
+  ["icebreaker","both","pro","One Word Check-in","Describe your current workload in one word and explain it in one sentence.","5 min"],
+  ["icebreaker","remote","casual","Background Story","Each person explains something in their video background or room, such as a poster, plant or object.","5-10 min"],
+  ["icebreaker","person","casual","Line Up","Without talking, line up by birthday month. Then share one fun fact with your neighbour.","10 min"],
+  ["icebreaker","remote","pro","Chat Waterfall","Everyone types an answer to 'What is one goal for this week?' and sends it together on a count of three.","5 min"],
+  ["icebreaker","person","pro","Speed Networking","Pair up for 2 minutes each and share your current project. Rotate partners three times.","10-15 min"],
+
+  // TEAM-BUILDING
+  ["teambuilding","remote","casual","Virtual Scavenger Hunt","Give the team 3 minutes to find items at home: something blue, something older than 10 years, something that makes them laugh.","10-15 min"],
+  ["teambuilding","remote","casual","Online Pictionary","Use a shared whiteboard. One person draws a word while the others guess in the chat.","20 min"],
+  ["teambuilding","person","casual","Marshmallow Tower","In groups of 4, build the tallest tower using 20 spaghetti sticks, tape and one marshmallow on top.","25 min"],
+  ["teambuilding","person","casual","Human Knot","Stand in a circle, hold two random hands, and untangle the group without letting go.","15 min"],
+  ["teambuilding","both","casual","Two Truths and a Lie","Each person shares two true facts and one lie about themselves. The team votes on the lie.","15-20 min"],
+  ["teambuilding","both","casual","Guess the Colleague","Collect one anonymous fun fact from each person. Read them aloud and let the team guess who wrote each.","15 min"],
+  ["teambuilding","both","pro","Appreciation Round","Each person thanks one teammate for something specific they did this month.","10-15 min"],
+  ["teambuilding","both","pro","Mini Retro","In 3 columns (Went well, To improve, Ideas) everyone adds sticky notes. Discuss the top three.","20-30 min"],
+  ["teambuilding","both","pro","Strengths Map","Each person writes their top two strengths. The group maps who can help with which kind of task.","20 min"],
+  ["teambuilding","both","pro","Problem Pitch","Split into small groups. Each gets a small workplace problem and 10 minutes to pitch a solution.","30 min"],
+  ["teambuilding","remote","pro","Shared Playlist Build","Everyone adds one work-friendly song to a shared playlist and says why in one sentence.","10-15 min"],
+  ["teambuilding","person","pro","Walk and Talk","Pair up and take a 15 minute walk. Each person shares one goal for the next six months.","15-20 min"],
+
+  // TRIVIA
+  ["trivia","both","casual","Red Planet","Which planet is known as the Red Planet?","2 min","Mars"],
+  ["trivia","both","casual","Lion King","In The Lion King, what is the name of the young lion who becomes king?","2 min","Simba"],
+  ["trivia","both","casual","Pizza Origin","Which country is the home of pizza?","2 min","Italy"],
+  ["trivia","both","casual","Biggest Animal","What is the largest animal on Earth?","2 min","The blue whale"],
+  ["trivia","both","casual","Cricket Team","How many players from one team are on the field in a cricket match?","2 min","11"],
+  ["trivia","both","casual","Longest River","Which river is the longest in India?","2 min","The Ganga (Ganges)"],
+  ["trivia","both","pro","CPU","What does CPU stand for?","2 min","Central Processing Unit"],
+  ["trivia","both","pro","HTML","What does HTML stand for?","2 min","HyperText Markup Language"],
+  ["trivia","both","pro","CEO","What does CEO stand for?","2 min","Chief Executive Officer"],
+  ["trivia","both","pro","Email Symbol","Which symbol is used in every email address?","2 min","@"],
+  ["trivia","both","pro","Web Address","What does URL stand for?","2 min","Uniform Resource Locator"],
+  ["trivia","both","pro","Binary","How many bits are in one byte?","2 min","8"]
+];
+
+// Turn each row into an object with an id
+var activities = [];
+for (var i = 0; i < rawData.length; i++) {
+  var r = rawData[i];
+  activities.push({ id: i, type: r[0], setting: r[1], vibe: r[2], title: r[3], desc: r[4], time: r[5], answer: r[6] || "" });
+}
+
+var typeNames = { icebreaker: "Icebreaker", teambuilding: "Team-building", trivia: "Trivia" };
+
+// ---------- STATE ----------
+var currentList = [];     // activities currently on screen
+var shownIds = [];        // ids shown in this search (for Regenerate)
+var lastFilters = null;   // remember the last form values
+var savedIds = loadSaved();
+
+// ---------- LOCAL STORAGE ----------
+function loadSaved() {
+  try {
+    var text = localStorage.getItem("savedActivities");
+    if (text) { return JSON.parse(text); }
+  } catch (e) { }
+  return [];
+}
+function storeSaved() {
+  try { localStorage.setItem("savedActivities", JSON.stringify(savedIds)); } catch (e) { }
+}
+
+// ---------- HELPERS ----------
+function $(id) { return document.getElementById(id); }
+
+function shuffle(list) {
+  var copy = list.slice();
+  for (var i = copy.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = copy[i]; copy[i] = copy[j]; copy[j] = t;
+  }
+  return copy;
+}
+
+function toast(message) {
+  var t = $("toast");
+  t.textContent = message;
+  t.style.display = "block";
+  setTimeout(function () { t.style.display = "none"; }, 1800);
+}
+
+function readFilters() {
+  return { size: Number($("teamSize").value), setting: $("setting").value, vibe: $("vibe").value, type: $("type").value };
+}
+
+function validate(f) {
+  if (!f.size || f.size < 2 || f.size > 200) {
+    $("error").textContent = "Please enter a team size between 2 and 200.";
+    return false;
+  }
+  $("error").textContent = "";
+  return true;
+}
+
+function matching(f) {
+  var out = [];
+  for (var i = 0; i < activities.length; i++) {
+    var a = activities[i];
+    var settingOk = (a.setting === "both" || a.setting === f.setting);
+    if (a.type === f.type && a.vibe === f.vibe && settingOk) { out.push(a); }
+  }
+  return out;
+}
+
+function findById(id) {
+  for (var i = 0; i < activities.length; i++) {
+    if (activities[i].id === id) { return activities[i]; }
+  }
+  return null;
+}
+
+function isSaved(id) { return savedIds.indexOf(id) !== -1; }
+
+// ---------- GENERATING ----------
+function showLoading() {
+  $("intro").classList.add("hidden");
+  var html = "";
+  for (var i = 0; i < 3; i++) { html += "<div class='skeleton'></div>"; }
+  $("results").innerHTML = html;
+}
+
+function generate(isRegen) {
+  var f = readFilters();
+  if (!validate(f)) { return; }
+
+  if (isRegen && !lastFilters) {
+    $("error").textContent = "Click Generate first, then you can regenerate.";
+    return;
+  }
+  // Regenerate uses the same filters as last time
+  if (isRegen) { f = lastFilters; } else { shownIds = []; }
+  lastFilters = f;
+
+  var pool = matching(f);
+  var fresh = [];
+  for (var i = 0; i < pool.length; i++) {
+    if (shownIds.indexOf(pool[i].id) === -1) { fresh.push(pool[i]); }
+  }
+  // If all ideas were shown, start again
+  if (fresh.length < 3) { shownIds = []; fresh = pool; }
+
+  var howMany = Math.min(fresh.length, 3 + Math.floor(Math.random() * 3)); // 3 to 5
+  var picked = shuffle(fresh).slice(0, howMany);
+
+  showLoading();
+  setTimeout(function () {
+    currentList = picked;
+    for (var j = 0; j < picked.length; j++) { shownIds.push(picked[j].id); }
+    var title = typeNames[f.type] + " ideas for " + f.size + " people (" + (f.setting === "remote" ? "remote" : "in-person") + ", " + (f.vibe === "pro" ? "professional" : "casual") + ")";
+    $("resultsTitle").textContent = title;
+    $("resultsHeader").classList.remove("hidden");
+    renderCards($("results"), currentList);
+  }, 500);
+}
+
+function surprise() {
+  // Ignore the filters and pick one random activity
+  var pick = activities[Math.floor(Math.random() * activities.length)];
+  lastFilters = null;
+  showLoading();
+  setTimeout(function () {
+    currentList = [pick];
+    $("resultsTitle").textContent = "Surprise! Here is a random pick";
+    $("resultsHeader").classList.remove("hidden");
+    renderCards($("results"), currentList);
+  }, 400);
+}
+
+// ---------- RENDERING ----------
+function renderCards(box, list) {
+  box.innerHTML = "";
+  for (var i = 0; i < list.length; i++) {
+    box.appendChild(makeCard(list[i]));
+  }
+}
+
+function makeCard(a) {
+  var div = document.createElement("div");
+  div.className = "card";
+
+  var html = "<div><span class='badge'>" + typeNames[a.type] + "</span><span class='badge time'>" + a.time + "</span></div>";
+  html += "<h3>" + a.title + "</h3>";
+  html += "<p>" + a.desc + "</p>";
+  if (a.answer) { html += "<div class='answer hidden' id='ans" + a.id + "'>Answer: " + a.answer + "</div>"; }
+  html += "<div class='card-actions'>";
+  if (a.answer) { html += "<button data-action='reveal' data-id='" + a.id + "'>Show answer</button>"; }
+  html += "<button data-action='save' data-id='" + a.id + "' class='" + (isSaved(a.id) ? "saved" : "") + "'>" + (isSaved(a.id) ? "★ Saved" : "☆ Save") + "</button>";
+  html += "</div>";
+
+  div.innerHTML = html;
+  return div;
+}
+
+function renderSaved() {
+  var list = [];
+  for (var i = 0; i < savedIds.length; i++) {
+    var a = findById(savedIds[i]);
+    if (a) { list.push(a); }
+  }
+  var box = $("savedList");
+  if (list.length === 0) {
+    box.innerHTML = "<div class='empty' style='grid-column:1/-1'>No favorites yet. Save an activity to see it here.</div>";
+  } else {
+    renderCards(box, list);
+  }
+  $("savedCount").textContent = savedIds.length;
+}
+
+// ---------- EVENTS ----------
+function handleCardClick(event) {
+  var btn = event.target;
+  var action = btn.getAttribute("data-action");
+  if (!action) { return; }
+  var id = Number(btn.getAttribute("data-id"));
+
+  if (action === "reveal") {
+    // answer boxes exist in both lists, so use all matching ones in this container
+    var card = btn.parentNode.parentNode;
+    var box = card.querySelector(".answer");
+    box.classList.toggle("hidden");
+    btn.textContent = box.classList.contains("hidden") ? "Show answer" : "Hide answer";
+  }
+
+  if (action === "save") {
+    var pos = savedIds.indexOf(id);
+    if (pos === -1) {
+      savedIds.push(id);
+      toast("Saved to favorites");
+    } else {
+      savedIds.splice(pos, 1);
+      toast("Removed from favorites");
+    }
+    storeSaved();
+    $("savedCount").textContent = savedIds.length;
+    if (!$("pageSaved").classList.contains("hidden")) {
+      renderSaved();
+    } else {
+      renderCards($("results"), currentList);
+    }
+  }
+}
+
+function showTab(name) {
+  var onSaved = (name === "saved");
+  $("pageGenerate").classList.toggle("hidden", onSaved);
+  $("pageSaved").classList.toggle("hidden", !onSaved);
+  $("tabGenerate").classList.toggle("active", !onSaved);
+  $("tabSaved").classList.toggle("active", onSaved);
+  if (onSaved) { renderSaved(); }
+}
+
+function copySummary() {
+  var text = $("resultsTitle").textContent + "\n";
+  for (var i = 0; i < currentList.length; i++) {
+    var a = currentList[i];
+    text += (i + 1) + ". " + a.title + " (" + a.time + "): " + a.desc;
+    if (a.answer) { text += " Answer: " + a.answer; }
+    text += "\n";
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function () { toast("Summary copied"); });
+  } else {
+    toast("Copy not supported in this browser");
+  }
+}
+
+function recommendVibe() {
+  var score = Number($("q1").value) + Number($("q2").value) + Number($("q3").value);
+  var vibe = (score >= 2) ? "pro" : "casual";
+  $("vibe").value = vibe;
+  $("quizBox").classList.add("hidden");
+  toast("Recommended vibe: " + (vibe === "pro" ? "Professional" : "Casual"));
+}
+
+$("generateBtn").addEventListener("click", function () { generate(false); });
+$("regenBtn").addEventListener("click", function () { generate(true); });
+$("surpriseBtn").addEventListener("click", surprise);
+$("quizBtn").addEventListener("click", function () { $("quizBox").classList.toggle("hidden"); });
+$("quizDone").addEventListener("click", recommendVibe);
+$("copyBtn").addEventListener("click", copySummary);
+$("tabGenerate").addEventListener("click", function () { showTab("generate"); });
+$("tabSaved").addEventListener("click", function () { showTab("saved"); });
+$("results").addEventListener("click", handleCardClick);
+$("savedList").addEventListener("click", handleCardClick);
+
+$("savedCount").textContent = savedIds.length;
+</script>
+
+</body>
+</html>
